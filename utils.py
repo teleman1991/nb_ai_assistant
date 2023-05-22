@@ -1,6 +1,7 @@
 from typing import Callable
+from langchain.docstore.document import Document
 
-from app_types import List, PageData
+from app_types import List, PageData, PDFDocument
 import re
 
 
@@ -26,3 +27,12 @@ def clean_text(pages: List[PageData], cleaning_functions: List[Callable[[str], s
             PageData(number=page_data.number, content=text)
         )
     return cleaned_pages
+
+
+def text_to_chunks(pdf_document: PDFDocument) -> List[Document]:
+    """
+    Converts list of strings into list of Documents with metadata.
+    :param pdf_document:
+    :return:
+    """
+    pass
