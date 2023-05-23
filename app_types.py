@@ -15,5 +15,10 @@ class PDFDocument:
     creation_date: str
     pages: List[PageData]
 
-
-
+    @property
+    def metadata(self) -> dict:
+        return {
+            "title": self.title,
+            "author": self.author,
+            "creation_date": self.creation_date,
+        }
