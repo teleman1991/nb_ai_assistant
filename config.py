@@ -8,3 +8,6 @@ assert OPENAI_API_KEY is not None, "OPENAI_API_KEY environment variable should b
                                    "themselves"
 
 VECTOR_STORE_COLLECTION_NAME = 'terms_of_service'
+VECTOR_STORE_PATH = 'src/data/chroma'
+if not os.path.exists(VECTOR_STORE_PATH):
+    os.makedirs(VECTOR_STORE_PATH)

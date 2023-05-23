@@ -10,7 +10,7 @@ from langchain.chains import ConversationalRetrievalChain
 from app_types import List, PageData, PDFDocument
 import re
 
-from config import VECTOR_STORE_COLLECTION_NAME
+from config import VECTOR_STORE_COLLECTION_NAME, VECTOR_STORE_PATH
 
 
 def merge_hyphenated_words(text: str) -> str:
@@ -28,11 +28,11 @@ def remove_multiple_newlines(text: str) -> str:
 def clean_text(pages: List[PageData], cleaning_functions: List[Callable[[str], str]]) -> List[PageData]:
     cleaned_pages = []
     for page_data in pages:
-        text = page_data.content
+        text = page_data.text
         for cleaning_function in cleaning_functions:
             text = cleaning_function(text)
         cleaned_pages.append(
-            PageData(number=page_data.number, content=text)
+            PageData(num=page_data.num, text=text)
         )
     return cleaned_pages
 
@@ -46,20 +46,21 @@ def text_to_chunks(pdf_document: PDFDocument) -> List[Document]:
 
     doc_chunks = []
 
-    for page_num, page in pdf_document.pages:
+    for page in pdf_document.pages:
+        page_num = page.num
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
             separators=["\n\n", "\n", ".", "!", "?", ",", " ", ""],
             chunk_overlap=200
         )
-        split_chunks = text_splitter.split_text(page)
+        split_chunks = text_splitter.split_text(page.text)
         for i, each_chunk in enumerate(split_chunks):
             doc_chunk = Document(
                 page_content=each_chunk,
                 metadata={
-                    "page_number":page_num,
+                    "page_number":page.num,
                     "chunk": i,
-                    "source": f"p{page_num}-{i}",
+                    "source": f"p{page.num}-{i}",
                     **pdf_document.metadata,
                 }
             )
@@ -75,7 +76,7 @@ def make_chain():
     vector_store = Chroma(
         collection_name=VECTOR_STORE_COLLECTION_NAME,
         embedding_function=embedding,
-        persist_directory='src/data/chroma'
+        persist_directory=VECTOR_STORE_PATH
     )
 
     return ConversationalRetrievalChain.from_llm(

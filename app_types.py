@@ -4,8 +4,8 @@ from dataclasses import dataclass
 
 @dataclass
 class PageData:
-    number: int
-    content: str
+    num: int
+    text: str
 
 
 @dataclass

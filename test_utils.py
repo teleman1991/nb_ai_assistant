@@ -73,9 +73,9 @@ class TestCleanText(TestCase):
 
         result = clean_text(
             pages=[
-                PageData(number=1, content='page one'),
-                PageData(number=2, content='page two'),
-                PageData(number=3, content='page three'),
+                PageData(num=1, text='page one'),
+                PageData(num=2, text='page two'),
+                PageData(num=3, text='page three'),
             ],
             cleaning_functions=[
                 fake_function_1,
@@ -91,8 +91,8 @@ class TestCleanText(TestCase):
         self.assertEqual(fake_function_3.call_args_list, expected_calls)
 
         expected_result = [
-            PageData(number=1, content='page one'),
-            PageData(number=2, content='page two'),
-            PageData(number=3, content='page three'),
+            PageData(num=1, text='page one'),
+            PageData(num=2, text='page two'),
+            PageData(num=3, text='page three'),
         ]
         self.assertEqual(result, expected_result)
