@@ -3,10 +3,13 @@ import os.path
 import pdfplumber as pdfplumber
 import PyPDF4 as PyPDF4
 from langchain.embeddings import OpenAIEmbeddings
+from langchain.schema import HumanMessage, AIMessage
 from langchain.vectorstores import Chroma
 
 from app_types import PageData, PDFDocument
-from utils import merge_hyphenated_words, fix_newlines, remove_multiple_newlines, clean_text, text_to_chunks
+from utils import merge_hyphenated_words, fix_newlines, remove_multiple_newlines, clean_text, text_to_chunks, make_chain
+from config import VECTOR_STORE_COLLECTION_NAME
+
 
 
 def fill_pages_from_pdf(file_path: str, pdf_document: PDFDocument):
@@ -26,12 +29,6 @@ def fill_pages_from_pdf(file_path: str, pdf_document: PDFDocument):
                 pdf_document.pages.append(PageData(number=page_num, content=text))
 
 
-# TODO: Check if it could be done in data of the next structure:
-#  Document:
-#   title
-#   author
-#   creationDate
-#   pages = [(page_number, page_content)]
 def fill_metadata_from_pdf(file_path: str, pdf_document: PDFDocument):
     with open(file_path, 'rb') as pdf_file:
         reader = PyPDF4.PdfFileReader(pdf_file)
@@ -60,8 +57,7 @@ def parse_pdf(file_path: str) -> PDFDocument:
 
 
 if __name__ == "__main__":
-    file_path = './Nifty Bridge Terms of Service.pdf'
-    raw_pages, metadata = parse_pdf(file_path)
+    pdf_document = parse_pdf('./Nifty Bridge Terms of Service.pdf')
 
     cleaning_functions_queue = [
         merge_hyphenated_words,
@@ -70,13 +66,42 @@ if __name__ == "__main__":
     ]
 
     cleaned_text_pdf = clean_text(
-        raw_pages,
+        pdf_document.pages,
         cleaning_functions_queue
     )
-    document_chunks = text_to_chunks(cleaned_text_pdf, metadata)
+    document_chunks = text_to_chunks(pdf_document)
 
     embeddings = OpenAIEmbeddings()
     vector_store = Chroma.from_documents(
         document_chunks,
         embeddings,
+        collection_name=VECTOR_STORE_COLLECTION_NAME,
+        persist_directory='/src/data/chroma'
     )
+
+    vector_store.persist()
+
+
+if __name__ == "__main__":
+    chain = make_chain()
+    chat_history = []
+
+    while True:
+        print()
+        question = input("Question: ")
+
+        response = chain({"question": question, "chat_history": chat_history})
+
+        answer = response["answer"]
+        source = response["source_documents"]
+
+        chat_history.append(HumanMessage(content=question))
+        chat_history.append(AIMessage(content=answer))
+
+        # Display answer
+        for document in source:
+            print(f"Page: {document.metadata['page_number']}")
+            print(f"Text chunk: {document.page_content[:160]}...\n")
+
+        print(f"Answer: {answer}")
+        print(f"Answer: {answer}")

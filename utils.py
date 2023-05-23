@@ -1,8 +1,16 @@
 from typing import Callable
+
+from langchain.chat_models import ChatOpenAI
 from langchain.docstore.document import Document
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.vectorstores import Chroma
+from langchain.chains import ConversationalRetrievalChain
 
 from app_types import List, PageData, PDFDocument
 import re
+
+from config import VECTOR_STORE_COLLECTION_NAME
 
 
 def merge_hyphenated_words(text: str) -> str:
@@ -35,4 +43,43 @@ def text_to_chunks(pdf_document: PDFDocument) -> List[Document]:
     :param pdf_document:
     :return:
     """
-    pass
+
+    doc_chunks = []
+
+    for page_num, page in pdf_document.pages:
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            separators=["\n\n", "\n", ".", "!", "?", ",", " ", ""],
+            chunk_overlap=200
+        )
+        split_chunks = text_splitter.split_text(page)
+        for i, each_chunk in enumerate(split_chunks):
+            doc_chunk = Document(
+                page_content=each_chunk,
+                metadata={
+                    "page_number":page_num,
+                    "chunk": i,
+                    "source": f"p{page_num}-{i}",
+                    **pdf_document.metadata,
+                }
+            )
+
+            doc_chunks.append(doc_chunk)
+
+    return doc_chunks
+
+
+def make_chain():
+    model = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+    embedding = OpenAIEmbeddings()
+    vector_store = Chroma(
+        collection_name=VECTOR_STORE_COLLECTION_NAME,
+        embedding_function=embedding,
+        persist_directory='src/data/chroma'
+    )
+
+    return ConversationalRetrievalChain.from_llm(
+        model,
+        retriever=vector_store.as_retriever(),
+        return_source_documents=True
+    )
