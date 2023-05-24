@@ -81,6 +81,7 @@ def make_chain():
 
     return ConversationalRetrievalChain.from_llm(
         model,
+        max_tokens_limit=4000,
         retriever=vector_store.as_retriever(),
         return_source_documents=True
     )
