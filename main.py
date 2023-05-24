@@ -102,3 +102,12 @@ if __name__ == "__main__":
             print(f"Text chunk: {document.page_content[:160]}...\n")
 
         print(f"Answer: {answer}")
+
+# TODO: Build tool to parse and embed pdf file.
+# TODO: Add template constrains
+# TODO: Check if max_tokens validation works
+# TODO: Document installation process into readme.md or build install script.
+# TODO: Write readme in next order:
+#  1 - main parts, their brief description
+#  2 - each part, accurate guideline.
+#  3 - installation process
