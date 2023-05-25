@@ -85,3 +85,11 @@ def make_chain():
         retriever=vector_store.as_retriever(),
         return_source_documents=True
     )
+
+
+def generate_ai_response(chain, chat_history: list, template: str, question: str) -> str:
+    # Use the template and the question to generate a response using the AI model
+    response = chain({"question": question, "template": template, 'chat_history': chat_history})
+    answer = response["answer"]
+
+    return answer

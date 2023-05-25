@@ -82,14 +82,14 @@ if __name__ == "__main__":
 
 
 if __name__ == "__main__":
-    chain = make_chain()
     chat_history = []
 
     while True:
         print()
         question = input("Question: ")
+        chain = make_chain()
 
-        response = chain({"question": question, "chat_history": chat_history})
+        response = chain({"template": '', "question": question, "chat_history": chat_history})
 
         answer = response["answer"]
         source = response["source_documents"]

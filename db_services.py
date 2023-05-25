@@ -68,7 +68,7 @@ def add_user_message(db_connection, user_id: int, message_text: str):
     db_connection.commit()
 
 
-def add_ai_message(db_connection, user_id: str, message_text: str):
+def add_ai_message(db_connection, user_id: int, message_text: str):
     cursor = db_connection.cursor()
     cursor.execute(
         """
@@ -80,7 +80,7 @@ def add_ai_message(db_connection, user_id: str, message_text: str):
     db_connection.commit()
 
 
-def save_chat_history(db_connection, messages: List[Union[HumanMessage, AIMessage]], user_id: int):
+def save_to_chat_history(db_connection, messages: List[Union[HumanMessage, AIMessage]], user_id: int):
     for message in messages:
         if isinstance(message, HumanMessage):
             add_user_message(db_connection, user_id, message.content)
