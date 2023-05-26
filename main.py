@@ -1,113 +1,96 @@
-import os.path
+import sqlite3
 
-import pdfplumber as pdfplumber
-import PyPDF4 as PyPDF4
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.schema import HumanMessage, AIMessage
-from langchain.vectorstores import Chroma
-
-from app_types import PageData, PDFDocument
-from utils import merge_hyphenated_words, fix_newlines, remove_multiple_newlines, clean_text, text_to_chunks, make_chain
-from config import VECTOR_STORE_COLLECTION_NAME, VECTOR_STORE_PATH
-
-
-def fill_pages_from_pdf(file_path: str, pdf_document: PDFDocument):
-    """
-    Extracts the text from each page of the PDF.
-    :param file_path: - The path of the PDF file.
-    :param pdf_document: - Python instance of document to fill.
-    """
-    if not os.path.isfile(file_path):
-        raise FileNotFoundError(f"File not found: {file_path}")
-
-    with pdfplumber.open(file_path) as pdf:
-        pdf_document.pages = []
-        for page_num, page in enumerate(pdf.pages):
-            text = page.extract_text()
-            if text.strip():  # Check if extracted text exists.
-                pdf_document.pages.append(PageData(num=page_num, text=text))
+from app_types import OKResponse, BadRequestResponse, UnauthorizedResponse
+from config import USERS_API_KEYS_DB_FILE, OPENAI_API_KEY
+from fastapi import FastAPI, Depends, Request, Header, HTTPException, status
+from http import HTTPStatus
+from langchain.schema import AIMessage, HumanMessage
+from utils import make_chain, generate_ai_response
+from langchain import PromptTemplate
+from db_services import get_user_id_by_api_key, load_chat_history, re_initialize_db, save_to_chat_history
 
 
-def fill_metadata_from_pdf(file_path: str, pdf_document: PDFDocument):
-    with open(file_path, 'rb') as pdf_file:
-        reader = PyPDF4.PdfFileReader(pdf_file)
-        metadata = reader.getDocumentInfo()
+assert OPENAI_API_KEY is not None, "OPENAI_API_KEY environment variable should be set to let API callers authorize " \
+                                   "themselves"
 
-        pdf_document.title = metadata.get('/Title', '').strip()
-        pdf_document.author = metadata.get('/Author', '').strip()
-        pdf_document.creation_date = metadata.get('/CreationDate', '').strip()
+app = FastAPI()
 
 
-def parse_pdf(file_path: str) -> PDFDocument:
-    """
-    Extracts the title and text from each page of the PDF.
+async def check_api_key(X_API_KEY_Token: str = Header(None, convert_underscores=True)):  # noqa.
+    with sqlite3.Connection(USERS_API_KEYS_DB_FILE) as db_connection:
+        re_initialize_db(db_connection)
+        user_id = get_user_id_by_api_key(db_connection, X_API_KEY_Token)
 
-    :param file_path: - The path of the PDF file.
-    :return: The tuple containing the title and list of tuples with page numbers
-    """
-    if not os.path.isfile(file_path):
-        raise FileNotFoundError(f"File not found: {file_path}")
-
-    pdf_document = PDFDocument('', '', '', [])
-    fill_metadata_from_pdf(file_path, pdf_document)
-    fill_pages_from_pdf(file_path, pdf_document)
-
-    return pdf_document
+    if user_id is None:
+        raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED)
+    return user_id
 
 
-if __name__ == "__main__":
-    pdf_document = parse_pdf('./Nifty Bridge Terms of Service.pdf')
+@app.post(
+    "/api/send",
+    dependencies=[Depends(check_api_key)],
+    summary="Send a message to the AI assistant",
+    description="Send a message to the AI assistant and receive a response. The AI assistant will generate a"
+                " response based on the message and the chat history.",
+    tags=['/api/send'],
+    responses={
+        status.HTTP_200_OK: {
+            "description": "OK: The AI assistant successfully processed the message and generated a response.",
+            "model": OKResponse,
+        },
+        status.HTTP_400_BAD_REQUEST: {
+            "description": "Bad Request: The provided message is invalid or not found.",
+            "model": BadRequestResponse,
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "description": "Unauthorized: The provided API key is invalid or not found.",
+            "model": UnauthorizedResponse,
+        },
+    },
+)
+async def send(request: Request, user_id: int = Depends(check_api_key)):
+    data = await request.json()
+    request_question = data.get('message', None)
 
-    cleaning_functions_queue = [
-        merge_hyphenated_words,
-        fix_newlines,
-        remove_multiple_newlines,
-    ]
+    if request_question is None:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST)
 
-    cleaned_text_pdf = clean_text(
-        pdf_document.pages,
-        cleaning_functions_queue
-    )
-    document_chunks = text_to_chunks(pdf_document)
+    with sqlite3.Connection(USERS_API_KEYS_DB_FILE) as db_connection:
+        chat_history = load_chat_history(db_connection, user_id)
 
-    embeddings = OpenAIEmbeddings()
-    vector_store = Chroma.from_documents(
-        document_chunks,
-        embeddings,
-        collection_name=VECTOR_STORE_COLLECTION_NAME,
-        persist_directory=VECTOR_STORE_PATH
-    )
+        # Integrate the template into the send function
+        template = """
+        Greet user with calling yourself "NiftyBridge AI assistant".
+        Do not answer on questions, that are not related to "Nifty Bridge" program.
+        Give answers only from the answer from vectorstore documents.
+        In case, you don't have the answer, please say ~ "I don't know please contact with support by email support@nifty-bridge.com".
+        
+        Question: {query}
+        Answer:"""  # noqa
 
-    vector_store.persist()
+        prompt_template = PromptTemplate(
+            input_variables=['query'],
+            template=template
+        )
 
-
-if __name__ == "__main__":
-    chat_history = []
-
-    while True:
-        print()
-        question = input("Question: ")
         chain = make_chain()
 
-        response = chain({"template": '', "question": question, "chat_history": chat_history})
+        # Generate the response using the template and the AI model
+        ai_response = generate_ai_response(
+            chain=chain,
+            template=template,
+            question=prompt_template.format(
+                query=request_question
+            ),
+            chat_history=chat_history
+        )
 
-        answer = response["answer"]
-        source = response["source_documents"]
+        new_messages = [
+            HumanMessage(content=request_question),
+            AIMessage(content=ai_response)
+        ]
 
-        chat_history.append(HumanMessage(content=question))
-        chat_history.append(AIMessage(content=answer))
+        save_to_chat_history(db_connection=db_connection, messages=new_messages, user_id=user_id)
 
-        # Display answer
-        for document in source:
-            print(f"Text chunk: {document.page_content[:160]}...\n")
-
-        print(f"Answer: {answer}")
-
-# TODO: Build tool to parse and embed pdf file.
-# TODO: Add template constrains
-# TODO: Check if max_tokens validation works
-# TODO: Document installation process into readme.md or build install script.
-# TODO: Write readme in next order:
-#  1 - main parts, their brief description
-#  2 - each part, accurate guideline.
-#  3 - installation process
+    # Return answer
+    return {"message": ai_response}

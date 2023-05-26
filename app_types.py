@@ -1,5 +1,6 @@
 from typing import List
 from dataclasses import dataclass
+from pydantic import BaseModel
 
 
 @dataclass
@@ -22,3 +23,15 @@ class PDFDocument:
             "author": self.author,
             "creation_date": self.creation_date,
         }
+
+
+class OKResponse(BaseModel):
+    message: str
+
+
+class BadRequestResponse(BaseModel):
+    detail: str
+
+
+class UnauthorizedResponse(BaseModel):
+    detail: str

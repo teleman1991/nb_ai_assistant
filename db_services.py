@@ -11,22 +11,6 @@ def get_user_id_by_api_key(db_connection, api_key: str) -> Optional[str]:
     return result[0] if result else None
 
 
-# def get_user_chat_history(db_connection, user_id: int) -> List[str]:
-#     cursor = db_connection.cursor()
-#     cursor.execute(
-#         """
-#         SELECT Message.text
-#         FROM User
-#         JOIN Message
-#         ON User.id = Message.user_id
-#         WHERE User.id = ?
-#         """,
-#         (user_id,)
-#     )
-#     result = cursor.fetchall()
-#     return [row[0] for row in result]
-
-
 def re_initialize_db(connection):
     connection.execute('''CREATE TABLE IF NOT EXISTS User
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
