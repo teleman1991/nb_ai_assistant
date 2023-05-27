@@ -32,7 +32,7 @@ Now you will see new registered API_KEY, that user may use to access the API end
 
 6. - Done. User now can access server, by providing API_KEY
 
-### Manual Run
+### Manual
 
 1. Make sure you have Python 3.11 installed.
 2. Optionally, create and activate a virtual environment.
