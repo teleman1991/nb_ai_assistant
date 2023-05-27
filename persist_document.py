@@ -56,8 +56,10 @@ def parse_pdf(file_path: str) -> PDFDocument:
 
 
 if __name__ == "__main__":
+    print("Parsing pdf")
     pdf_document = parse_pdf('./Nifty Bridge Terms of Service.pdf')
 
+    print("Cleaning text")
     pdf_document.pages = clean_text(
         pages=pdf_document.pages,
         cleaning_functions=[
@@ -67,9 +69,12 @@ if __name__ == "__main__":
         ]
     )
 
+    print("Splitting text to chunks")
     document_chunks = text_to_chunks(pdf_document)
 
     embeddings = OpenAIEmbeddings()
+
+    print("Embedding document")
     vector_store = Chroma.from_documents(
         document_chunks,
         embeddings,
