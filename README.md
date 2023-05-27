@@ -16,7 +16,7 @@ based on rules, decripted with natural language, being stored in PDF document.
 1. Get and install Docker for your operating system: ~[https://docs.docker.com/get-docker/](https://docs.docker.com/get-docker/)~
 
 2. Run the server by executing:
-`bash docker run -p 8000:8000 -e OPENAI_API_KEY=<Your openai key> boshtannik/nb_ai_assistant`
+`docker run -p 8000:8000 -e OPENAI_API_KEY=<Your openai key> boshtannik/nb_ai_assistant`
 
 Currently, your server does not have any API_KEYS for users to be authed with. And server does not have PDF document
 being embedded.
@@ -53,3 +53,7 @@ Now you will see new registered API_KEY, that user may use to access the API end
 1. Start the server: `OPENAI_API_KEY=<Your OPENAI key here> uvicorn main:app --host 0.0.0.0 --port 8000`
 
 Now, users can access the server using their API key.
+
+### Usage
+Usage be like:
+`curl -d '{"message": "Hello"}' -X POST "http://localhost:8000/api/send" -H "X-API-KEY-Token: {API_KEY}" -H "Content-Type: application/json"`
