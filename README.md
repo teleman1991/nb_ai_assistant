@@ -46,7 +46,7 @@ Now you will see new registered API_KEY, that user may use to access the API end
 ### Registering Users
 
 1. Register a new user: `python user_api_key_registrator.py --register`
-2. List registered API keys: `python user_api_key_registrator.py --list`
+(You can list registered API keys: `python user_api_key_registrator.py --list`)
 
 ### Running the Server
 
