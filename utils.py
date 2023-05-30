@@ -47,7 +47,6 @@ def text_to_chunks(pdf_document: PDFDocument) -> List[Document]:
     doc_chunks = []
 
     for page in pdf_document.pages:
-        page_num = page.num
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
             separators=["\n\n", "\n", ".", "!", "?", ",", " ", ""],
@@ -81,7 +80,7 @@ def make_chain():
 
     return ConversationalRetrievalChain.from_llm(
         model,
-        max_tokens_limit=4000,
+        max_tokens_limit=4000,  # FIXME.
         retriever=vector_store.as_retriever(),
         return_source_documents=True
     )
