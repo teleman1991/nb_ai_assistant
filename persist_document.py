@@ -48,7 +48,7 @@ def parse_pdf(file_path: str) -> PDFDocument:
     if not os.path.isfile(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
 
-    pdf_document = PDFDocument('', '', '', [])
+    pdf_document = PDFDocument(title='', author='', creation_date='', pages=[])
     fill_metadata_from_pdf(file_path, pdf_document)
     fill_pages_from_pdf(file_path, pdf_document)
 

@@ -1,5 +1,7 @@
-from typing import List
+from typing import List, Union
 from dataclasses import dataclass
+
+from langchain.schema import HumanMessage, AIMessage
 from pydantic import BaseModel
 
 
@@ -23,6 +25,9 @@ class PDFDocument:
             "author": self.author,
             "creation_date": self.creation_date,
         }
+
+
+MessageType = Union[HumanMessage, AIMessage]
 
 
 class OKResponse(BaseModel):

@@ -4,3 +4,4 @@ __pycache__/
 src/
 test_cmd.sh
 users.sqlite3
+ask_ai.sh

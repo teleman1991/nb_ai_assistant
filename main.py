@@ -5,7 +5,7 @@ from config import USERS_API_KEYS_DB_FILE, OPENAI_API_KEY
 from fastapi import FastAPI, Depends, Request, Header, HTTPException, status
 from http import HTTPStatus
 from langchain.schema import AIMessage, HumanMessage
-from utils import make_chain, generate_ai_response
+from utils import make_chain, generate_ai_response, limit_tokens_for_request
 from langchain import PromptTemplate
 from db_services import get_user_id_by_api_key, load_chat_history, re_initialize_db, save_to_chat_history
 
@@ -59,35 +59,38 @@ async def send(request: Request, user_id: int = Depends(check_api_key)):
         chat_history = load_chat_history(db_connection, user_id)
 
         # Integrate the template into the send function
-        template = """
-        Greet user with calling yourself "NiftyBridge AI assistant".
-        Give answers only from the answer from vectorstore documents.
-        You should not answer questions, that are not related to "Nifty Bridge" program, described in the document.
-        In case, if you don't have the answer to the question, please say ~ "I don't know please contact with support by email support@nifty-bridge.com".
-        
-        Question: {query}
-        Answer:"""  # noqa
-
         prompt_template = PromptTemplate(
             input_variables=['query'],
-            template=template
+            template="""
+            Greet user with calling yourself "NiftyBridge AI assistant".
+            Give answers only from the answer from vectorstore documents.
+            You should not answer questions, that are not related to "Nifty Bridge" program, described in the document.
+            In the case, that the answer is not provided within the context, say: "i don't know please contact with support by email support@nifty-bridge.com".
+            
+            Question: {query}
+            Answer:"""  # noqa
         )
 
         chain = make_chain()
 
+        question = prompt_template.format(query=request_question)
+        try:
+            limited_chat_history = limit_tokens_for_request(question=question,
+                                                            chat_history=chat_history)
+        except ValueError:
+            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST,
+                                detail="The question is too long. Server not process this.")
+
         # Generate the response using the template and the AI model
         ai_response = generate_ai_response(
             chain=chain,
-            template=template,
-            question=prompt_template.format(
-                query=request_question
-            ),
-            chat_history=chat_history
+            question=question,
+            chat_history=limited_chat_history,
         )
 
         new_messages = [
             HumanMessage(content=request_question),
-            AIMessage(content=ai_response)
+            AIMessage(content=ai_response),
         ]
 
         save_to_chat_history(db_connection=db_connection, messages=new_messages, user_id=user_id)

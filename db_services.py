@@ -1,7 +1,9 @@
 import random
 import string
-from typing import Optional, List, Union
+from typing import Optional, List
 from langchain.schema import HumanMessage, AIMessage
+
+from app_types import MessageType
 
 
 def get_user_id_by_api_key(db_connection, api_key: str) -> Optional[str]:
@@ -64,7 +66,7 @@ def add_ai_message(db_connection, user_id: int, message_text: str):
     db_connection.commit()
 
 
-def save_to_chat_history(db_connection, messages: List[Union[HumanMessage, AIMessage]], user_id: int):
+def save_to_chat_history(db_connection, messages: List[MessageType], user_id: int):
     for message in messages:
         if isinstance(message, HumanMessage):
             add_user_message(db_connection, user_id, message.content)
@@ -72,7 +74,7 @@ def save_to_chat_history(db_connection, messages: List[Union[HumanMessage, AIMes
             add_ai_message(db_connection, user_id, message.content)
 
 
-def load_chat_history(db_connection, user_id: int) -> List[Union[HumanMessage, AIMessage]]:
+def load_chat_history(db_connection, user_id: int) -> List[MessageType]:
     cursor = db_connection.cursor()
     cursor.execute(
         """

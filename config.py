@@ -9,3 +9,5 @@ if not os.path.exists(VECTOR_STORE_PATH):
 
 
 USERS_API_KEYS_DB_FILE = './users.sqlite3'
+GPT_3_5_TURBO_TOKEN_LIMIT = 4096
+MAX_RESPONSE_TOKENS = 256
