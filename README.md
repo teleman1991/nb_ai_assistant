@@ -1,59 +1,94 @@
-# Server AI assistant FastAPI Application
+# Workplace Document AI Assistant
 
-This repository contains a FastAPI application of AI assitant. It provides an API for posting question, and get reponse
-based on rules, decripted with natural language, being stored in PDF document.
+An intelligent document processing and analysis tool designed for modern workplaces. This FastAPI application provides powerful document analysis capabilities including summarization, key point extraction, and natural language querying.
 
 ## Features
 
-- Registration of user's API keys.
-- PDF document parsing and embedding.
-- FastAPI application.
+- **Multi-Format Support**
+  - PDF document processing
+  - DOCX file handling
+  - Plain text analysis
+  
+- **Advanced Document Analysis**
+  - Automatic text extraction
+  - Document summarization
+  - Key points identification
+  - Metadata extraction
+
+- **Natural Language Querying**
+  - Context-aware responses
+  - Intelligent question answering
+  - Document-based reasoning
 
 ## Installation
 
-### Using Docker
+### Prerequisites
+1. Python 3.8 or higher
+2. pip package manager
 
-1. Get and install Docker for your operating system: ~[https://docs.docker.com/get-docker/](https://docs.docker.com/get-docker/)~
+### Setup
+1. Clone this repository:
+```bash
+git clone https://github.com/teleman1991/nb_ai_assistant.git
+cd nb_ai_assistant
+```
 
-2. Run the server by executing:
-`docker run -p 8000:8000 -e OPENAI_API_KEY=<Your openai key> boshtannik/nb_ai_assistant`
-
-Currently, your server does not have any API_KEYS for users to be authed with. And server does not have PDF document
-being embedded.
-To do this:
-
-3. Get name or ID of running container, by run:
-`docker ps -a`
-4. Use CONTAINER ID to parse PDF document and make it embedded. Run:
-`docker exec -e OPENAI_API_KEY=<Your openai key> <CONTAINER ID> python persist_document.py`
-5. use CONTAINER ID to register new API_KEY to access the server:
-`docker exec <CONTAINER ID> python user_api_key_registrator.py --register`
-Now you will see new registered API_KEY, that user may use to access the API endpoint.
-
-6. - Done. User now can access server, by providing API_KEY
-
-### Manual
-
-1. Make sure you have Python 3.11 installed.
-2. Optionally, create and activate a virtual environment.
-3. Upgrade pip: `pip install --upgrade pip`
-4. Install required dependencies: `pip install -r requirements.txt`
-
-### Parsing and Embedding PDF
-
-1. Run: `OPENAI_API_KEY=<Your openai key> python persist_document.py`
-
-### Registering Users
-
-1. Register a new user: `python user_api_key_registrator.py --register`
-(You can list registered API keys: `python user_api_key_registrator.py --list`)
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
 ### Running the Server
+1. Start the FastAPI server:
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
 
-1. Start the server: `OPENAI_API_KEY=<Your OPENAI key here> uvicorn main:app --host 0.0.0.0 --port 8000`
+## API Usage
 
-Now, users can access the server using their API key.
+### Process Document
+```python
+import requests
 
-### Usage
-Usage be like:
-`curl -d '{"message": "Hello"}' -X POST "http://localhost:8000/api/send" -H "X-API-KEY-Token: {API_KEY}" -H "Content-Type: application/json"`
+# Process a document
+with open('document.pdf', 'rb') as f:
+    response = requests.post(
+        'http://localhost:8000/process/',
+        files={'file': f}
+    )
+    results = response.json()
+    print(results['summary'])
+```
+
+### Query Document
+```python
+# Query a document
+with open('document.pdf', 'rb') as f:
+    response = requests.post(
+        'http://localhost:8000/query/',
+        files={'file': f},
+        data={'query': 'What are the main conclusions?'}
+    )
+    answer = response.json()['answer']
+    print(answer)
+```
+
+## API Endpoints
+
+- `POST /process/`
+  - Process a document and get summary, key points, and metadata
+  - Accepts PDF, DOCX, or TXT files
+  
+- `POST /query/`
+  - Ask specific questions about a document
+  - Returns context-aware answers
+
+## Security
+
+- API key authentication required for all endpoints
+- Secure file handling and processing
+- Rate limiting implemented
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit issues and pull requests.
